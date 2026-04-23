@@ -16,6 +16,7 @@ resource "aws_instance" "srv_ftp" {
 resource "aws_instance" "srv_ldap" {
   ami           = "ami-098e39bafa7e7303d" 
   instance_type = "t2.micro"
+  private_ip    = "10.1.1.50"
   subnet_id     = aws_subnet.sub_priv_ldap.id
   key_name      = var.key_name
   vpc_security_group_ids = [aws_security_group.sg_ldap.id]
