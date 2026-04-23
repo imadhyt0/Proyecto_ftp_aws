@@ -1,52 +1,59 @@
 #!/bin/bash
-# 1. Actualizar e instalar ProFTPD y el módulo LDAP
+export DEBIAN_FRONTEND=noninteractive
+
+# Actualizar e instalar ProFTPD y el modulo LDAP
 apt-get update -y
 apt-get install -y proftpd proftpd-mod-ldap
 
-# 2. Obtener la IP Pública de AWS dinámicamente para el Modo Pasivo
-TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-IP_PUB=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+# Quitar el comentario para activar el modulo LDAP
+sed -i 's/^#\s*LoadModule mod_ldap.c/LoadModule mod_ldap.c/g' /etc/proftpd/modules.conf
 
-# 3. Crear carpeta pública y dar permisos
+# Sacar la IP publica de la maquina para el modo pasivo
+IP_PUB=$(curl -s ifconfig.me)
+
+# Crear la carpeta publica para el usuario anonymous
 mkdir -p /srv/ftp/publico
 chmod 755 /srv/ftp/publico
-chown ftp:ftp /srv/ftp/publico
+chown ftp:nogroup /srv/ftp/publico
 
-# 4. Inyectar la configuración maestra de ProFTPD
-cat <<EOF > /etc/proftpd/proftpd.conf
-Include /etc/proftpd/modules.conf
-UseIPv6 off
-IdentLookups off
-ServerName "Servidor FTP IES Iliberis"
-ServerType standalone
-DeferWelcome off
-MultilineRFC2228 on
-DefaultServer on
-ShowSymlinks on
-TimeoutNoTransfer 600
-TimeoutStalled 600
-TimeoutIdle 1200
-Port 21
-MaxInstances 30
-User proftpd
-Group nogroup
-Umask 022 022
-AllowOverwrite on
+# Crear las carpetas de los usuarios a mano para que no de el error 530
+mkdir -p /home/senen
+chown 1000:1000 /home/senen
 
-# --- SOLUCIÓN MODO PASIVO ---
+mkdir -p /home/imad
+chown 1001:1001 /home/imad
+
+# Escribir la configuracion al final del archivo
+cat <<EOF >> /etc/proftpd/proftpd.conf
+
+# Configuracion general
+DefaultRoot ~
+RequireValidShell off
+AuthPAM off
+
+# Modo pasivo
 PassivePorts 60000 65535
 MasqueradeAddress $IP_PUB
 
-# --- ENLACE CON LDAP ---
+# Conexion con la maquina LDAP privada
 <IfModule mod_ldap.c>
+  AuthOrder mod_ldap.c mod_auth_unix.c
   LDAPServer 10.1.1.50
   LDAPBindDN "cn=Manager,dc=my-domain,dc=com" "secret"
-  LDAPUsers ou=usuarios,dc=my-domain,dc=com (uid=%v) (uidNumber=%v)
-  LDAPDoAuth on "dc=my-domain,dc=com"
+  LDAPUsers "ou=usuarios,dc=my-domain,dc=com" "(uid=%v)"
+  
+  # Para que el LDAP valide las contraseñas encriptadas
+  LDAPAuthBinds on
+  
+  LDAPSearchScope subtree
+  LDAPDefaultGID 1000
+  LDAPDefaultUID 1000
+  LDAPForceDefaultGID on
+  LDAPForceDefaultUID on
 </IfModule>
 
-# --- USUARIO ANÓNIMO ---
-<Anonymous ~ftp>
+# Acceso para el usuario anonymous
+<Anonymous /srv/ftp>
   User ftp
   Group nogroup
   UserAlias anonymous ftp
@@ -60,5 +67,5 @@ MasqueradeAddress $IP_PUB
 </Anonymous>
 EOF
 
-# 5. Reiniciar el servicio para aplicar los cambios
+# Reiniciar el servicio para aplicar los cambios
 systemctl restart proftpd

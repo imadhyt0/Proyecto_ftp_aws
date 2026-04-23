@@ -4,7 +4,7 @@ variable "region" {
 
 variable "key_name" {
   description = "Nombre de tu llave .pem de AWS"
-  default     = "vockey" # Cambia esto por el nombre de tu llave
+  default     = "imad-key" # Cambia esto por el nombre de tu llave
 }
 
 variable "empresa_name" {

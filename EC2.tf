@@ -5,10 +5,10 @@ resource "aws_instance" "srv_ftp" {
   key_name      = var.key_name
   vpc_security_group_ids = [aws_security_group.sg_ftp.id]
   
-
   iam_instance_profile = "LabInstanceProfile"
 
-  user_data = file("FTP.sh")
+  # EL TRUCO: Borramos el retorno de carro de Windows (\r) para que Linux lo entienda
+  user_data = replace(file("FTP.sh"), "\r", "")
 
   tags = { Name = "Servidor-FTP-Ubuntu" }
 }
@@ -21,7 +21,8 @@ resource "aws_instance" "srv_ldap" {
   key_name      = var.key_name
   vpc_security_group_ids = [aws_security_group.sg_ldap.id]
 
-  user_data = file("LDAP.sh")
+  # EL TRUCO: Lo mismo para el LDAP
+  user_data = replace(file("LDAP.sh"), "\r", "")
 
   tags = { Name = "Servidor-LDAP-Privado" }
 }
