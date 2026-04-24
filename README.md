@@ -162,3 +162,6 @@ Y sobre LDAP, que estoy aprendiendo a usarlo, he entendido para qué sirve: cent
 
 ---
 
+**[[ENLACE AL VÍDEO EXPLICATIVO AQUÍ]](https://drive.google.com/file/d/1Wo5pTZUNDC26zjjteUoXWGBLJ2med0qW/view?usp=sharing)** *(VIDEO DESPLIEGE FTP).*
+
+
